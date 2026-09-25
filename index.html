@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
+  <title>
+   COALMINE-X – Mine Safety Monitoring Dashboard
+  </title>
+  <link href="assets/css/styles.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <div class="login-screen" id="loginScreen">
+    <div class="login-card">
+      <div class="login-logo">CX</div>
+      <div class="login-kicker">SECURE SUBSTATION ACCESS</div>
+      <h1>COALMINE-X</h1>
+      <form id="loginForm">
+        <label>Substation ID<input id="loginId" autocomplete="username" placeholder="e.g. SS-1-OP" required></label>
+        <label>Password<input id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter password" required></label>
+        <button class="login-button" type="submit">Sign in to Substation Console</button>
+        <div class="login-error" id="loginError"></div>
+      </form>
+      <div class="login-demo">Demo access: <b>SS-1-OP</b> / <b>COALMINE@SS1</b></div>
+    </div>
+  </div>
+  <aside class="app-sidebar">
+   <div class="sidebar-brand"><div class="brand-mark">CX</div><div><strong>COALMINE-X</strong><span>Mine Safety Console</span></div></div>
+   <div class="sidebar-section-label">MONITORING</div>
+   <nav class="tabs" aria-label="Dashboard navigation">
+    <button class="nav-item on" id="tb_ov" data-icon="⌂">Overview</button>
+    <button class="nav-item" id="tb_md" data-icon="▣">Camera &amp; Video</button>
+    <button class="nav-item" id="tb_li" data-icon="◇">LiDAR 3D</button>
+    <button class="nav-item" id="tb_se" data-icon="◉">Sensors &amp; AI</button>
+    <button class="nav-item" id="tb_zn" data-icon="⌗">Zones &amp; Boreholes</button>
+    <button class="nav-item" id="tb_lg" data-icon="!">Alerts &amp; Logs</button>
+    <button class="nav-item" id="tb_dh" data-icon="◷">Daily History</button>
+   </nav>
+   <div class="sidebar-footer">
+    <div class="sidebar-system"><span class="status-dot"></span><span>System online</span></div>
+    <div class="monitor-controls">
+     <button class="control-start" id="startSystem">▶ Start Monitoring</button>
+     <button class="control-stop" id="stopSystem">■ Stop Monitoring</button>
+     <button class="control-reset" id="resetSystem">↻ Reset System</button>
+    </div>
+    <div class="operator-profile">
+      <span class="profile-avatar" id="profileAvatar">OP</span>
+      <div><b id="profileName">SS-1 Operator</b><small id="profileRole">Authorized Substation Operator</small></div>
+      <button id="logoutButton" title="Sign out">Sign out</button>
+    </div>
+   </div>
+  </aside>
+  <main class="app-main">
+   <header class="dashboard-header">
+    <div class="brand-block">
+     <h1>COALMINE-X · Mine Safety Monitoring Dashboard</h1>
+    <div class="monitor-status running" id="monitorStatus">● Monitoring Running</div>
+   </header>
+   <div class="pills" id="pl"></div>
+   <div id="sb"><span id="sm"></span><button id="ak">Acknowledge Siren</button></div>
+   <div class="kpi" id="kp">
+   </div>
+   <div class="g" id="t_ov">
+    <div class="c live-camera-card" id="liveCameraCard">
+     <div class="camera-heading">
+      <div>
+       <h2>Live camera · UGV R-01 night vision (Zone A patrol)</h2>
+       <p class="section-note">Live images and video are transmitted only while R-01 is underground, deploying the sensor device, and returning to the portal.</p>
+      </div>
+      <span class="camera-state off" id="cameraState">● CAMERA OFF</span>
+     </div>
+     <div class="camera-frame-wrap">
+      <canvas height="270" id="lv" width="480"></canvas>
+      <div class="camera-off-overlay" id="cameraOffOverlay">
+       <strong>LIVE FEED OFF</strong>
+       <span>R-01 is outside the mine or the Zone A sensor mission is complete.</span>
+      </div>
+     </div>
+     <div class="mission-strip">
+      <span>Mission: <b id="ugvMissionState">Waiting at portal</b></span>
+      <span>Sensor deployment: <b id="sensorDeployState">Pending</b></span>
+      <button class="reset-mission" id="resetUgvMission">↻ Reset Mission</button>
+     </div>
+     <div class="lg">
+      <span>AI crack detection: <b id="crackStatus">Monitoring</b></span>
+      <span>Media transfer: <b id="mediaTransferStatus">Inactive</b></span>
+     </div>
+    </div>
+    <div class="c">
+     <h2>Hardware integration status</h2>
+     <div class="hardware-note"><strong>R-01 rover movement is handled by the hardware simulation.</strong><span>This dashboard only displays received monitoring data and safety analytics.</span></div>
+     <div id="ms"></div>
+    </div>
+    <div class="c w2">
+     <h2>
+      Mine status map (underground plan)
+     </h2>
+     <canvas height="300" id="mp" style="background:#1c1611" width="900">
+     </canvas>
+     <div class="lg">
+      <span>
+       <i style="background:#22c55e">
+       </i>
+       Stable
+      </span>
+      <span>
+       <i style="background:#f59e0b">
+       </i>
+       Damaged
+      </span>
+      <span>
+       <i style="background:#ef4444">
+       </i>
+       Critical / crack
+      </span>
+      <span>
+       <i style="background:#f5d76e">
+       </i>
+       PU foam
+      </span>
+      <span>
+       <i style="background:#22d3ee">
+       </i>
+       Node N-01 / LoRa link
+      </span>
+      <span>
+       <i style="background:#f97316">
+       </i>
+       Borehole
+      </span>
+     </div>
+    </div>
+    <div class="c">
+     <h2>
+      Zone status &amp; AI decisions
+     </h2>
+     <div class="ov">
+      <table>
+       <thead>
+        <tr>
+         <th>
+          Zone
+         </th>
+         <th>
+          Class
+         </th>
+         <th>
+          Score
+         </th>
+         <th>
+          Displ.
+         </th>
+         <th>
+          Rate
+         </th>
+         <th>
+          Decision
+         </th>
+        </tr>
+       </thead>
+       <tbody id="zt">
+       </tbody>
+      </table>
+     </div>
+    </div>
+    <div class="c">
+     <h2>
+      Latest alerts
+     </h2>
+     <div id="alo">
+     </div>
+    </div><div class="c w2 safety-situation-card">
+     <div class="camera-heading">
+      <div>
+       <h2>Zone A situation &amp; safety events</h2>
+       <p class="section-note">Status changes automatically from current cracks, foaming, blasting, gas, vibration and structural conditions.</p>
+      </div>
+      <span class="situation-badge" id="zoneASituation">SAFE</span>
+     </div>
+     <div class="situation-grid" id="zoneASituationDetails"></div>
+     <div class="event-feed" id="zoneAEventFeed"></div>
+    </div>
+   </div>
+   <div class="g" id="t_md" style="display:none">
+    <div class="c">
+     <h2>
+      Viewer
+     </h2>
+     <canvas height="360" id="pv" width="640">
+     </canvas>
+     <div class="ctl">
+      <button id="pp">
+       ⏸
+      </button>
+      <input id="ps" max="100" min="0" type="range" value="0"/>
+      <span class="mu" id="pt">
+       0:00
+      </span>
+     </div>
+    </div>
+    <div class="c">
+     <h2>
+      Capture details
+     </h2>
+     <div id="md">
+     </div>
+    </div>
+    <div class="c w2">
+     <h2>
+      Media received from the mine
+     </h2>
+     <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="f on" id="f_all">
+       All
+      </button>
+      <button class="f" id="f_i">
+       Images
+      </button>
+      <button class="f" id="f_v">
+       Videos
+      </button>
+     </div>
+     <div class="tg" id="mg">
+     </div>
+    </div>
+   </div>
+   <div class="g" id="t_li" style="display:none">
+    <div class="c w2">
+     <h2>
+      LiDAR 3D point cloud – Zone A gallery (RPLIDAR A1 + IMU)
+     </h2>
+     <canvas height="340" id="ld" style="background:#0d1117" width="900">
+     </canvas>
+     <div class="ctl">
+      <label class="mu">
+       <input checked="" id="ar" type="checkbox"/>
+       auto-rotate
+      </label>
+      <input id="yw" max="628" min="0" type="range" value="60"/>
+     </div>
+     <div class="lg">
+      <span>
+       <i style="background:#2dd4bf">
+       </i>
+       Tunnel surface
+      </span>
+      <span>
+       <i style="background:#f59e0b">
+       </i>
+       Cracks C-01, C-02
+      </span>
+      <span>
+       <i style="background:#ef4444">
+       </i>
+       High-risk crack C-03 / open void
+      </span>
+      <span>
+       <i style="background:#f5d76e">
+       </i>
+       Foam-filled void
+      </span>
+      <span>
+       <i style="background:#22d3ee">
+       </i>
+       Node N-01
+      </span>
+      <span>
+       Cross-section exaggerated ×12 for visibility
+      </span>
+     </div>
+    </div>
+    <div class="c">
+     <h2>
+      Scan summary
+     </h2>
+     <div id="ls">
+     </div>
+    </div>
+    <div class="c">
+     <h2>
+      Detected features
+     </h2>
+     <div class="ov" id="lf">
+     </div>
+    </div>
+   </div>
+   <div class="g" id="t_se" style="display:none">
+    <div class="c w2">
+     <h2>
+      Node N-01 · multi-sensor fusion (Zone A, chainage 237 m)
+     </h2>
+     <div class="tiles" id="tl">
+     </div>
+    </div>
+    <div class="c">
+     <h2>
+      AI prediction – Zone A displacement (CNN-LSTM)
+     </h2>
+     <canvas height="240" id="cv" style="background:#14100c" width="600">
+     </canvas>
+     <div class="lg" id="pm">
+     </div>
+    </div>
+    <div class="c">
+     <h2>
+      Vibration classifier – false-alarm filter
+     </h2>
+     <div id="vc">
+     </div>
+    </div>
+    <div class="c">
+     <h2>
+      Mine environment by zone
+     </h2>
+     <div class="ov" id="en">
+     </div>
+    </div>
+    <div class="c">
+     <h2>
+      Field devices
+     </h2>
+     <div class="ov" id="nd">
+     </div>
+    </div>
+   </div>
+   <div class="g" id="t_zn" style="display:none">
+    <div class="c">
+     <h2>
+      Crack register (with evidence)
+     </h2>
+     <div class="ov" id="cr">
+     </div>
+    </div>
+    <div class="c">
+     <h2>
+      Borehole planner (safe-point AI)
+     </h2>
+     <div class="ov" id="bt">
+     </div>
+    </div>
+    <div class="c w2">
+     <h2>
+      Inter-zone risk coupling (source → target)
+     </h2>
+     <div class="ov" id="mx">
+     </div>
+    </div>
+   </div>
+   <div class="g" id="t_lg" style="display:none">
+    <div class="c">
+     <h2>
+      Alerts · siren · SMS
+     </h2>
+     <div class="scr" id="al">
+     </div>
+    </div>
+    <div class="c">
+     <h2>
+      Network, storage &amp; data ingest
+     </h2>
+     <div id="nt">
+     </div>
+     <div class="term" id="mq">
+     </div>
+    </div>
+   </div>
+   <div class="g" id="t_dh" style="display:none">
+    <div class="c w2 history-toolbar-card">
+     <div class="history-heading-row">
+      <div>
+       <h2>
+        Per-day Reading History
+       </h2>
+       <p class="section-note">
+        Readings are saved in this browser and grouped by calendar date. The most recent 30 days are retained.
+       </p>
+      </div>
+      <div class="history-actions">
+       <label for="historyDate">
+        Date
+       </label>
+       <input id="historyDate" type="date"/>
+       <button class="p" id="saveReadingNow">
+        Save reading now
+       </button>
+       <button id="exportHistory">
+        Export CSV
+       </button>
+       <button class="danger-outline" id="clearHistory">
+        Clear history
+       </button>
+      </div>
+     </div>
+    </div>
+    <div class="kpi w2" id="historyKpis">
+    </div>
+    <div class="c w2">
+     <h2>
+      Daily summary
+     </h2>
+     <div class="ov">
+      <table>
+       <thead>
+        <tr>
+         <th>
+          Date
+         </th>
+         <th>
+          Samples
+         </th>
+         <th>
+          Avg displacement
+         </th>
+         <th>
+          Min / Max
+         </th>
+         <th>
+          Avg CH₄
+         </th>
+         <th>
+          Peak CH₄
+         </th>
+         <th>
+          Avg PPV
+         </th>
+         <th>
+          Highest risk
+         </th>
+         <th>
+          Alerts
+         </th>
+        </tr>
+       </thead>
+       <tbody id="dailyHistoryRows">
+       </tbody>
+      </table>
+     </div>
+    </div>
+    <div class="c w2">
+     <h2>
+      Selected date readings
+     </h2>
+     <div class="ov">
+      <table>
+       <thead>
+        <tr>
+         <th>
+          Time
+         </th>
+         <th>
+          Status
+         </th>
+         <th>
+          Zone A displacement
+         </th>
+         <th>
+          Rate
+         </th>
+         <th>
+          CH₄
+         </th>
+         <th>
+          PPV
+         </th>
+         <th>
+          Risk
+         </th>
+         <th>
+          ETA
+         </th>
+        </tr>
+       </thead>
+       <tbody id="selectedDayRows">
+       </tbody>
+      </table>
+     </div>
+    </div>
+   </div>
+  </main>
+  <script defer="" src="assets/js/app.js">
+  </script>
+  <script defer="" src="assets/js/dashboard-controls.js">
+  </script>
+ </body>
+</html>
